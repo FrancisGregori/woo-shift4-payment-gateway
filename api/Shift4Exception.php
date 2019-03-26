@@ -45,11 +45,20 @@ class Shift4Exception extends \Exception
     {
 
         return new self(
-            'Guzzle error: ' . $error . PHP_EOL .
-            'Request: ' . $request . PHP_EOL .
+            'Guzzle error: ' . ($error) . PHP_EOL .
+            'Request: ' . ($request) . PHP_EOL .
             'URL: ' . $url . PHP_EOL .
             'Send Data: ' . json_encode($body)
         );
+
+    }
+
+    public static function wooError($error, $request, $body, $url)
+    {
+        $message = json_decode($error);
+
+
+        return new self($message['response']['result']['primaryCode']);
 
     }
 

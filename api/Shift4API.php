@@ -2,15 +2,20 @@
 
 namespace Woo_Shift4_Payment_Gateway\Api;
 
+use Woo_Shift4_Payment_Gateway\Api\Shift4Transaction;
+
 use GuzzleHttp\Client;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use Carbon\Carbon;
 
-use Woo_Shift4_Payment_Gateway\Api\Shift4Exception;
-
 class Shift4API
 {
+    /**
+     * @var stirng
+     */
+    public $accessToken;
+
 
     /**
      * Guzzle wrapper
@@ -48,8 +53,6 @@ class Shift4API
 
     protected $patternOther = '/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{16}$/';
 
-    public $accessToken;
-
     protected $sendData = array();
 
     protected $output;
@@ -75,25 +78,25 @@ class Shift4API
         // Set Client URL
         $this->clientUrl = $clientUrl;
 
-        if (!$this->clientUrl || !$this->isValid('clientUrl', $this->clientUrl)) throw Shift4Exception::noApiUrl();
+        if (!$this->clientUrl || !$this->isValid('clientUrl', $this->clientUrl)) throw Shift4Transaction::noApiUrl();
 
         // Set Client GUID
         $this->clientGuid = $clientGuid;
 
-        if (!$this->clientGuid || !$this->isValid('clientGuid', $this->clientGuid)) throw Shift4Exception::noGuid();
+        if (!$this->clientGuid || !$this->isValid('clientGuid', $this->clientGuid)) throw Shift4Transaction::noGuid();
 
         // Set Client Auth Token
         $this->clientAuthToken = $clientAuthToken;
 
-        if (!$this->clientAuthToken || !$this->isValid('clientAuthToken', $this->clientAuthToken)) throw Shift4Exception::noAuthToken();
+        if (!$this->clientAuthToken || !$this->isValid('clientAuthToken', $this->clientAuthToken)) throw Shift4Transaction::noAuthToken();
 
         $this->companyName = $companyName;
 
-        if (!$this->companyName) throw Shift4Exception::noCompanyName();
+        if (!$this->companyName) throw Shift4Transaction::noCompanyName();
 
         $this->interfaceName = $interfaceName;
 
-        if (!$this->interfaceName) throw Shift4Exception::noInterfaceName();
+        if (!$this->interfaceName) throw Shift4Transaction::noInterfaceName();
 
         // Get Access Token
         $this->accessToken = $accessToken ?: $this->login();
@@ -125,12 +128,16 @@ class Shift4API
 
     }
 
-    public function output()
+    /**
+     * @return mixed
+     */
+    public function getOutput()
     {
 
         return $this->output;
 
     }
+
     public function getAccessToken()
     {
 
@@ -253,34 +260,42 @@ class Shift4API
 
     protected function send()
     {
-
         try {
 
             $response = $this->client->request(
                 $this->callMethod,
-                $this->versionUri . $this->uri,
+                $this->clientUrl . $this->uri,
                 array(
                     'json' => $this->sendData
                 )
             );
 
-            $this->output = json_decode($response->getBody(), TRUE);
+            $this->output = \GuzzleHttp\json_decode($response->getBody(), TRUE);
 
-            // if(array_key_exists(['errorindicator'], $this->output['result'][0])) {
-
-            // 	$this->setError($this->output['result'][0]);
-
-            // }
 
             return $this;
 
-        } catch (GuzzleHttp\Exception\ClientException $e) {
+        } catch (ServerException $e) {
 
-            throw Shift4Exception::guzzleError($e->getMessage(), $this->getBody(), $this->sendData, $this->versionUri . $this->uri);
+            // $e->getResponse()->getBody()->getContents()
 
-        } catch (\Exception $e) {
+            throw Shift4Exception::guzzleError($e->getMessage(), $this->getBody(), $this->sendData, $this->clientUrl . $this->uri);
 
-            throw Shift4Exception::guzzleError($e->getMessage(), $this->getBody(), $this->sendData, $this->versionUri . $this->uri);
+        } catch (BadResponseException $e) {
+
+            throw Shift4Exception::guzzleError($e->getMessage(), $this->getBody(), $this->sendData, $this->clientUrl . $this->uri);
+
+        } catch (RequestException $e) {
+
+            throw Shift4Exception::guzzleError($e->getMessage(), $this->getBody(), $this->sendData, $this->clientUrl . $this->uri);
+
+        } catch (ClientException $e) {
+
+            throw Shift4Exception::guzzleError($e->getMessage(), $this->getBody(), $this->sendData, $this->clientUrl . $this->uri);
+
+        } catch (Exception $e) {
+
+            throw Shift4Exception::guzzleError($e->getMessage(), $this->getBody(), $this->sendData, $this->clientUrl . $this->uri);
 
         }
 

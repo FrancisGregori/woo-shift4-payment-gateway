@@ -29,7 +29,7 @@ class WC_Shift4_Autoloader
 
         spl_autoload_register(array($this, 'autoload'));
 
-        $this->include_path = untrailingslashit(plugin_dir_path(SHITF4_PLUGIN_FILE)).'/api/';
+        $this->include_path = untrailingslashit(plugin_dir_path(SHITF4_PLUGIN_FILE)) . '/api/';
     }
 
     /**
@@ -42,6 +42,10 @@ class WC_Shift4_Autoloader
     {
         $file = array_reverse(explode('\\', $class));
 
+        if ($file[0] === 'Shift4Test') {
+            return 'tests/' . str_replace('_', '-', $file[0]) . '.php';
+        }
+
         return str_replace('_', '-', $file[0]) . '.php';
     }
 
@@ -53,6 +57,7 @@ class WC_Shift4_Autoloader
      */
     private function load_file($path)
     {
+
         if ($path && is_readable($path)) {
             include_once $path;
             return true;
